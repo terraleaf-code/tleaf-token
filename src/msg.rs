@@ -72,6 +72,8 @@ pub enum ExecuteMsg {
     UpdateConfig {
         admins: Option<Vec<String>>,
     },
+    // /// WithdrawLockedFunds is used to transfer locked funds in the smart contract address
+    // WithdrawLockedFunds { recipient: String,  },
     /// Transfer is a base message to move tokens to another account without triggering actions
     Transfer { recipient: String, amount: Uint128 },
     /// Burn is a base message to destroy tokens forever
