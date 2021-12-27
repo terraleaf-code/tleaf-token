@@ -1,0 +1,1 @@
+bc108f124ba4a98aa512717801355857476dd5531e5f536825f77a4f5b0cb3a1  ./target/wasm32-unknown-unknown/release/tleaf_token.wasm

@@ -15,13 +15,13 @@
 .idea
 
 # Build artifacts
-*.wasm
 hash.txt
 contracts.txt
-artifacts/
 
 # configuration
 config.json
 *.config.json
 
 .env
+
+package-lock.json

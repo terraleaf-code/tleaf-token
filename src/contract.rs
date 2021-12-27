@@ -1,8 +1,9 @@
-use cosmwasm_std::{Addr, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdError, StdResult, to_binary, Uint128};
+use cosmwasm_std::{Addr, BankMsg, Binary, coin, Coin, Decimal, Deps, DepsMut, Env, MessageInfo, Response, StdError, StdResult, SubMsg, to_binary, Uint128};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cw2::{get_contract_version, set_contract_version};
 use cw20::{Logo, LogoInfo, MarketingInfoResponse};
+use terra_cosmwasm::TerraQuerier;
 
 use cw20_base::allowances::{execute_decrease_allowance, execute_increase_allowance, execute_send_from, execute_transfer_from, query_allowance};
 use cw20_base::contract::{create_accounts, execute_mint, execute_send, execute_transfer, execute_update_marketing, execute_upload_logo, query_balance, query_download_logo, query_marketing_info, query_minter, query_token_info, verify_logo};
@@ -15,6 +16,8 @@ use cw20_base::msg::InstantiateMsg as Cw20InstantiateMsg;
 
 use crate::msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
 use crate::state::{CONFIG, Config};
+
+static DECIMAL_FRACTION: Uint128 = Uint128::new(1_000_000_000_000_000_000u128);
 
 // version info for migration info
 const CONTRACT_NAME: &str = "terraleaf.io:tleaf-token";
@@ -159,6 +162,11 @@ pub fn execute(
             marketing,
         } => execute_update_marketing(deps, env, info, project, description, marketing),
         ExecuteMsg::UploadLogo(logo) => execute_upload_logo(deps, env, info, logo),
+        ExecuteMsg::WithdrawLockedFunds {
+            denom,
+            amount,
+            recipient
+        } => execute_withdraw_locked_funds(deps, info, denom, amount, recipient)
     }
 }
 
@@ -221,6 +229,30 @@ pub fn execute_burn_from(
     cw20_execute_burn_from(deps, env, info, owner, amount)
 }
 
+pub fn execute_withdraw_locked_funds(
+    deps: DepsMut,
+    info: MessageInfo,
+    denom: String,
+    amount: Uint128,
+    recipient: String,
+) -> Result<Response, ContractError> {
+    // authorized owner
+    let cfg = CONFIG.load(deps.storage)?;
+    if !is_admin(&cfg, &info.sender) {
+        return Err(ContractError::Unauthorized {});
+    }
+
+    Ok(Response::new()
+        .add_attribute("method", "withdraw_locked_funds")
+        .add_attribute("sender", info.sender.clone())
+        .add_attribute("denom", denom.clone())
+        .add_attribute("amount", amount.to_string())
+        .add_attribute("recipient", recipient.clone())
+        .add_submessage(SubMsg::new(BankMsg::Send {
+            to_address: recipient,
+            amount: vec![deduct_tax(deps, coin(amount.u128(), denom))?],
+        })))
+}
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
@@ -251,4 +283,31 @@ pub fn query_config(deps: Deps) -> StdResult<Config> {
 
 fn is_admin(cfg: &Config, addr: &Addr) -> bool {
     return cfg.admins.iter().any(|a| a == addr);
+}
+
+fn compute_tax(deps: DepsMut, coin: &Coin) -> Result<Uint128, ContractError> {
+    let amount = coin.amount;
+    let denom = coin.denom.clone();
+
+    if denom == "uluna" {
+        Ok(Uint128::zero())
+    } else {
+        let terra_querier = TerraQuerier::new(&deps.querier);
+        let tax_rate: Decimal = (terra_querier.query_tax_rate()?).rate;
+        let tax_cap: Uint128 = (terra_querier.query_tax_cap(denom.to_string())?).cap;
+        Ok(std::cmp::min(
+            amount.checked_sub(amount.multiply_ratio(
+                DECIMAL_FRACTION,
+                DECIMAL_FRACTION * tax_rate + DECIMAL_FRACTION,
+            ))?,
+            tax_cap,
+        ))
+    }
+}
+
+fn deduct_tax(deps: DepsMut, coin: Coin) -> Result<Coin, ContractError> {
+    Ok(Coin {
+        denom: coin.denom.clone(),
+        amount: coin.amount.checked_sub(compute_tax(deps, &coin)?)?,
+    })
 }
