@@ -1,0 +1,25 @@
+{
+  "name": "tleaf-token",
+  "version": "1.0.0",
+  "author": "jerzylasyk@gmail.com",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "run_script": "node --experimental-specifier-resolution=node",
+    "store_token": "yarn run_script deployment/token/store.js",
+    "instantiate_token": "yarn run_script deployment/token/instantiate.js",
+    "deploy_token": "yarn store_token && yarn instantiate_token"
+  },
+  "dependencies": {
+    "@pinata/sdk": "^1.1.23",
+    "@terra-money/terra.js": "^2.0.15",
+    "axios": "^0.24.0",
+    "dotenv": "^10.0.0",
+    "envfile": "^6.17.0",
+    "lodash": "^4.17.21",
+    "prompts": "^2.4.2",
+    "protobufjs": "^6.11.2",
+    "randomstring": "^1.2.1",
+    "sleep": "^6.3.0"
+  }
+}

@@ -1,9 +1,9 @@
 import dotenv from 'dotenv'; dotenv.config();
 import { saveToEnv } from './env_store';
-import terraUtils from './terra_base';
+import terraBase from './terra_base';
 
-const codeId = await terraUtils.storeContractCode({
-  filePath: `../artifacts/tleaf_token.wasm`,
+const codeId = await terraBase.storeContractCode({
+  filePath: `artifacts/tleaf_token.wasm`,
   txMemo: `Store token contract - ${process.env.CONTRACT_TOKEN_NAME}`,
 });
 
