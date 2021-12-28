@@ -3,5 +3,7 @@
   "decimals": 6,
   "name": "terraleaf token",
   "initial_balances": [],
-  "symbol": "TLEAF"
+  "symbol": "TLEAF",
+  "mint": null,
+  "marketing": null
 }
