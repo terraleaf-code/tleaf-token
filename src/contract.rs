@@ -6,16 +6,16 @@ use cw20::{Logo, LogoInfo, MarketingInfoResponse};
 use terra_cosmwasm::TerraQuerier;
 
 use cw20_base::allowances::{execute_decrease_allowance, execute_increase_allowance, execute_send_from, execute_transfer_from, query_allowance};
-use cw20_base::contract::{create_accounts, execute_mint, execute_send, execute_transfer, execute_update_marketing, execute_upload_logo, query_balance, query_download_logo, query_marketing_info, query_minter, query_token_info, verify_logo};
+use cw20_base::contract::{create_accounts, execute_mint, execute_send, execute_transfer, execute_update_marketing, execute_upload_logo, query_balance, query_download_logo, query_marketing_info, query_minter, query_token_info};
 use cw20_base::contract::execute_burn as cw20_execute_burn;
 use cw20_base::allowances::execute_burn_from as cw20_execute_burn_from;
-use cw20_base::ContractError;
 use cw20_base::enumerable::{query_all_accounts, query_all_allowances};
 use cw20_base::state::{LOGO, MARKETING_INFO, MinterData, TOKEN_INFO, TokenInfo};
 use cw20_base::msg::InstantiateMsg as Cw20InstantiateMsg;
 
 use crate::msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
 use crate::state::{CONFIG, Config};
+use crate::error::ContractError;
 
 static DECIMAL_FRACTION: Uint128 = Uint128::new(1_000_000_000_000_000_000u128);
 
@@ -77,7 +77,6 @@ pub fn instantiate(
 
     if let Some(marketing) = msg.marketing {
         let logo = if let Some(logo) = marketing.logo {
-            verify_logo(&logo)?;
             LOGO.save(deps.storage, &logo)?;
 
             match logo {
@@ -125,43 +124,43 @@ pub fn execute(
         ExecuteMsg::UpdateConfig { admins } =>
             execute_update_config(deps, info, admins),
         ExecuteMsg::Transfer { recipient, amount } => {
-            execute_transfer(deps, env, info, recipient, amount)
+            Ok(execute_transfer(deps, env, info, recipient, amount)?)
         }
         ExecuteMsg::Burn { amount } => execute_burn(deps, env, info, amount),
         ExecuteMsg::Send {
             contract,
             amount,
             msg,
-        } => execute_send(deps, env, info, contract, amount, msg),
-        ExecuteMsg::Mint { recipient, amount } => execute_mint(deps, env, info, recipient, amount),
+        } => Ok(execute_send(deps, env, info, contract, amount, msg)?),
+        ExecuteMsg::Mint { recipient, amount } => Ok(execute_mint(deps, env, info, recipient, amount)?),
         ExecuteMsg::IncreaseAllowance {
             spender,
             amount,
             expires,
-        } => execute_increase_allowance(deps, env, info, spender, amount, expires),
+        } => Ok(execute_increase_allowance(deps, env, info, spender, amount, expires)?),
         ExecuteMsg::DecreaseAllowance {
             spender,
             amount,
             expires,
-        } => execute_decrease_allowance(deps, env, info, spender, amount, expires),
+        } => Ok(execute_decrease_allowance(deps, env, info, spender, amount, expires)?),
         ExecuteMsg::TransferFrom {
             owner,
             recipient,
             amount,
-        } => execute_transfer_from(deps, env, info, owner, recipient, amount),
+        } => Ok(execute_transfer_from(deps, env, info, owner, recipient, amount)?),
         ExecuteMsg::BurnFrom { owner, amount } => execute_burn_from(deps, env, info, owner, amount),
         ExecuteMsg::SendFrom {
             owner,
             contract,
             amount,
             msg,
-        } => execute_send_from(deps, env, info, owner, contract, amount, msg),
+        } => Ok(execute_send_from(deps, env, info, owner, contract, amount, msg)?),
         ExecuteMsg::UpdateMarketing {
             project,
             description,
             marketing,
-        } => execute_update_marketing(deps, env, info, project, description, marketing),
-        ExecuteMsg::UploadLogo(logo) => execute_upload_logo(deps, env, info, logo),
+        } => Ok(execute_update_marketing(deps, env, info, project, description, marketing)?),
+        ExecuteMsg::UploadLogo(logo) => Ok(execute_upload_logo(deps, env, info, logo)?),
         ExecuteMsg::WithdrawLockedFunds {
             denom,
             amount,
@@ -210,7 +209,7 @@ pub fn execute_burn(
         return Err(ContractError::Unauthorized {});
     }
 
-    cw20_execute_burn(deps, env, info, amount)
+    Ok(cw20_execute_burn(deps, env, info, amount)?)
 }
 
 pub fn execute_burn_from(
@@ -226,7 +225,7 @@ pub fn execute_burn_from(
         return Err(ContractError::Unauthorized {});
     }
 
-    cw20_execute_burn_from(deps, env, info, owner, amount)
+    Ok(cw20_execute_burn_from(deps, env, info, owner, amount)?)
 }
 
 pub fn execute_withdraw_locked_funds(

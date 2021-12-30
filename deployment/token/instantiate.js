@@ -7,7 +7,7 @@ const TOTAL_SUPPLY = String(1000_000_000_000_000); // 1 billion with 6 decimal p
 
 // Preparing init message
 const adminAddress = terraBase.getWalletDetails().address;
-const initMsg = JSON.parse(fs.readFileSync(`deployment/token/instantiate_msg.json`));
+const initMsg = JSON.parse(fs.readFileSync(`token/instantiate_msg.json`));
 initMsg['admins'] = [adminAddress]
 initMsg['initial_balances'] = [{
   address: adminAddress,

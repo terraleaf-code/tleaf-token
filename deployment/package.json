@@ -5,9 +5,9 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "run_script": "node --experimental-specifier-resolution=node",
-    "store_token": "yarn run_script deployment/token/store.js",
-    "instantiate_token": "yarn run_script deployment/token/instantiate.js",
+    "run_script": "node --experimental-specifier-resolution=node --openssl-legacy-provider",
+    "store_token": "yarn run_script token/store.js",
+    "instantiate_token": "yarn run_script token/instantiate.js",
     "deploy_token": "yarn store_token && yarn instantiate_token"
   },
   "dependencies": {

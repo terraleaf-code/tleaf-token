@@ -22,6 +22,7 @@ contracts.txt
 config.json
 *.config.json
 
-.env
+deployment/.env
 
 package-lock.json
+node_modules
